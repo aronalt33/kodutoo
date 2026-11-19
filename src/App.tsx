@@ -155,6 +155,7 @@ export default function App() {
       <footer className="footer container">
         Rakendus kasutab ainult näidisandmeid või sinu üles laaditud faili. Andmeid hoitakse ainult brauseri mälus ning
         kõik arvutused ja raport koostatakse rakenduses – väliseid AI-teenuseid ei kasutata.
+        <p className="copyright">© 2026 Compensa Vienna Insurance Group. Built with Claude Code</p>
       </footer>
     </>
   );
