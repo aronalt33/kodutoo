@@ -154,8 +154,9 @@ td.child { padding-left: 28px !important; color: var(--muted); }
 .small { font-size: 0.85rem; }
 .summary > .muted { margin: 12px 0 0; }
 
-.footer { font-size: 0.8rem; color: var(--muted); padding-bottom: 28px; }
-.copyright { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--line); text-align: center; }
+/* Jalus: kogu sisu ühtlaselt keskel ja selge vahega põhisisust */
+.footer { font-size: 0.8rem; line-height: 1.6; color: var(--muted); text-align: center; padding-top: 8px; padding-bottom: 28px; }
+.copyright { margin: 14px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
 
 /* Mobiil */
 @media (max-width: 800px) {
