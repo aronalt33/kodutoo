@@ -4,9 +4,9 @@ export default function Header() {
       <div className="container header-inner">
         <img src="/logo.png" alt="Compensa" className="logo" />
         <div>
-          <h1>Müügikoosoleku kokkuvõtte tegija</h1>
+          <h1>Müügitulemused ja analüütika</h1>
           <p className="lead">
-            Arvutab müügiandmetest põhinäitajad ja koostab nende põhjal lühikese kokkuvõtte müügikoosolekuks.
+            Arvutab valitud perioodi müügitulemused, võrdleb neid eelmise perioodiga ja koostab andmete põhjal juhtimisraporti.
           </p>
         </div>
       </div>

@@ -1,49 +1,82 @@
 import { useMemo, useState } from 'react';
 import { SAMPLE_CSV } from './data/sampleData';
 import { decodeFile, parseSalesCsv } from './lib/csv';
-import { aggregate, byChannel, byGroup, missingGroupsByMonth, monthsIn, periodLabel } from './lib/metrics';
-import { buildPayload } from './lib/summary';
-import type { ParseResult, SummaryText } from './lib/types';
+import {
+  aggregate, compare, compareChannels, compareGroups, defaultSelection, funnel,
+  missingGroupsByMonth, missingProductsByMonth, monthsIn, periodLabel, previousPeriod,
+} from './lib/metrics';
+import { buildReport } from './lib/report';
+import type { ParseResult } from './lib/types';
 import Header from './components/Header';
 import PeriodPicker from './components/PeriodPicker';
 import KpiCards from './components/KpiCards';
-import QuickOverview from './components/QuickOverview';
-import ChannelChart from './components/ChannelChart';
-import GroupTable from './components/GroupTable';
+import FunnelPanel from './components/FunnelPanel';
+import ChannelAnalysis from './components/ChannelAnalysis';
+import ProductAnalysis from './components/ProductAnalysis';
 import DataPanel from './components/DataPanel';
-import SummaryPanel, { type SummaryState } from './components/SummaryPanel';
+import ReportPanel from './components/ReportPanel';
 
 const sampleResult = parseSalesCsv(SAMPLE_CSV);
 
 export default function App() {
-  // Kõik andmed hoitakse ainult brauseri mälus (React state).
+  // Kõik andmed hoitakse ainult brauseri mälus (React state); väliseid teenuseid ei kasutata.
   const [result, setResult] = useState<ParseResult>(sampleResult);
   const [isSample, setIsSample] = useState(true);
   const [fileName, setFileName] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<string[]>(() => monthsIn(sampleResult.rows));
-  const [summary, setSummary] = useState<SummaryState>({ status: 'idle' });
+  const [selected, setSelected] = useState<string[]>(() => defaultSelection(monthsIn(sampleResult.rows)));
 
   const available = useMemo(() => monthsIn(result.rows), [result]);
+  const previous = useMemo(() => previousPeriod(selected, available), [selected, available]);
+  const hasPrev = previous.months !== null;
+
+  // Valitud ja eelmise perioodi read
   const rows = useMemo(() => result.rows.filter((r) => selected.includes(r.kuu)), [result, selected]);
+  const prevRows = useMemo(
+    () => (previous.months ? result.rows.filter((r) => previous.months!.includes(r.kuu)) : null),
+    [result, previous],
+  );
+
+  // Arvutused (vt src/lib/metrics.ts)
   const total = useMemo(() => aggregate(rows), [rows]);
-  const channels = useMemo(() => byChannel(rows), [rows]);
-  const groups = useMemo(() => byGroup(rows), [rows]);
+  const change = useMemo(() => compare(total, prevRows ? aggregate(prevRows) : null), [total, prevRows]);
+  const fun = useMemo(() => funnel(total), [total]);
+  const channels = useMemo(() => compareChannels(rows, prevRows), [rows, prevRows]);
+  const groups = useMemo(() => compareGroups(rows, prevRows), [rows, prevRows]);
   const period = periodLabel(selected);
+
+  // Reeglipõhine raport (vt src/lib/report.ts)
+  const report = useMemo(
+    () =>
+      buildReport({
+        periood: period,
+        vordlusperiood: previous.months ? periodLabel(previous.months) : null,
+        previous,
+        total,
+        change,
+        channels,
+        groups,
+        funnel: fun,
+        errorCount: result.errors.length,
+        warnings: result.warnings,
+        missingNotes: missingGroupsByMonth(result.rows, [...selected, ...(previous.months ?? [])]),
+        missingProducts: missingProductsByMonth(result.rows, [...selected, ...(previous.months ?? [])]),
+        isSample,
+      }),
+    [period, previous, total, change, channels, groups, fun, result, selected, isSample],
+  );
 
   function loadResult(r: ParseResult, sample: boolean, name: string | null) {
     setResult(r);
     setIsSample(sample);
     setFileName(name);
-    setSelected(monthsIn(r.rows));
-    setSummary({ status: 'idle' });
+    setSelected(defaultSelection(monthsIn(r.rows)));
   }
 
   async function handleFile(file: File) {
     setUploadError(null);
     try {
-      const text = decodeFile(await file.arrayBuffer());
-      const r = parseSalesCsv(text);
+      const r = parseSalesCsv(decodeFile(await file.arrayBuffer()));
       if (r.fatal) {
         // Faili ei saa kasutada – jätame eelmised andmed alles ja näitame põhjust.
         setUploadError(r.fatal);
@@ -61,38 +94,6 @@ export default function App() {
   function restoreSample() {
     setUploadError(null);
     loadResult(sampleResult, true, null);
-  }
-
-  function changePeriod(months: string[]) {
-    setSelected(months);
-    setSummary({ status: 'idle' }); // vana kokkuvõte ei vasta enam valitud perioodile
-  }
-
-  async function generate() {
-    setSummary({ status: 'loading' });
-    const payload = buildPayload({
-      periood: period,
-      kuudeArv: selected.length,
-      naidisandmed: isSample,
-      kokku: total,
-      kanalid: channels,
-      tootegrupid: groups,
-      vigaseidRidu: result.errors.length,
-      hoiatused: result.warnings,
-      puuduvadAndmed: missingGroupsByMonth(result.rows, selected),
-    });
-    try {
-      const res = await fetch('/api/summary', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || `Viga ${res.status}`);
-      setSummary({ status: 'done', text: data as SummaryText, period, isSample });
-    } catch (e) {
-      setSummary({ status: 'error', message: e instanceof Error ? e.message : String(e) });
-    }
   }
 
   const hasData = rows.length > 0;
@@ -128,7 +129,7 @@ export default function App() {
             </div>
           </div>
           {uploadError && <div className="alert alert-error" role="alert">{uploadError}</div>}
-          <PeriodPicker available={available} selected={selected} onChange={changePeriod} />
+          <PeriodPicker available={available} selected={selected} previous={previous} onChange={setSelected} />
         </section>
 
         <DataPanel result={result} isSample={isSample} />
@@ -140,20 +141,20 @@ export default function App() {
           </section>
         ) : (
           <>
-            <QuickOverview total={total} channels={channels} period={period} isSample={isSample} />
-            <KpiCards total={total} />
+            <h2 className="section-title">Müügitulemused: {period}</h2>
+            <KpiCards change={change} hasPrev={hasPrev} />
             <div className="grid-2">
-              <ChannelChart channels={channels} />
-              <GroupTable groups={groups} />
+              <FunnelPanel funnel={fun} />
+              <ChannelAnalysis channels={channels} hasPrev={hasPrev} />
             </div>
+            <ProductAnalysis groups={groups} rows={rows} prevRows={prevRows} hasPrev={hasPrev} />
+            <ReportPanel report={report} />
           </>
         )}
-
-        <SummaryPanel state={summary} disabled={!hasData} onGenerate={generate} total={total} />
       </main>
       <footer className="footer container">
-        Rakendus kasutab ainult näidisandmeid või sinu üles laaditud faili. Andmeid hoitakse ainult brauseri mälus;
-        tekstilise kokkuvõtte koostamiseks saadetakse Claude'i mudelile ainult arvutatud koondnäitajad.
+        Rakendus kasutab ainult näidisandmeid või sinu üles laaditud faili. Andmeid hoitakse ainult brauseri mälus ning
+        kõik arvutused ja raport koostatakse rakenduses – väliseid AI-teenuseid ei kasutata.
       </footer>
     </>
   );
