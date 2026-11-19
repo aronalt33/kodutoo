@@ -1,4 +1,4 @@
-// Gemini juhised. Mudel kirjutab ainult teksti; kõik arvud on rakenduses juba arvutatud.
+// Claude juhised. Mudel kirjutab ainult teksti; kõik arvud on rakenduses juba arvutatud.
 export const SYSTEM_INSTRUCTION = `Sa oled müügianalüütiku abiline, kes kirjutab eesti keeles lühikese müügikoosoleku kokkuvõtte.
 
 RANGED REEGLID

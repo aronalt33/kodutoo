@@ -153,7 +153,7 @@ export default function App() {
       </main>
       <footer className="footer container">
         Rakendus kasutab ainult näidisandmeid või sinu üles laaditud faili. Andmeid hoitakse ainult brauseri mälus;
-        tekstilise kokkuvõtte koostamiseks saadetakse Gemini mudelile ainult arvutatud koondnäitajad.
+        tekstilise kokkuvõtte koostamiseks saadetakse Claude'i mudelile ainult arvutatud koondnäitajad.
       </footer>
     </>
   );

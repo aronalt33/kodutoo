@@ -1,7 +1,9 @@
 import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { GoogleGenAI, Type } from '@google/genai';
+import Anthropic from '@anthropic-ai/sdk';
+import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
+import { z } from 'zod';
 import { SYSTEM_INSTRUCTION } from './prompt.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -9,62 +11,68 @@ const distDir = path.resolve(__dirname, '../dist');
 const app = express();
 app.use(express.json({ limit: '200kb' }));
 
-// Mudel: GEMINI_MODEL keskkonnamuutujast; kui see pole saadaval, proovitakse järgmisi.
-const MODELS = [process.env.GEMINI_MODEL, 'gemini-flash-latest', 'gemini-2.5-flash'].filter(Boolean) as string[];
+// Mudel: ANTHROPIC_MODEL keskkonnamuutujast, vaikimisi Claude Opus 5.5.
+const MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-5-5';
 
-const responseSchema = {
-  type: Type.OBJECT,
-  properties: {
-    lyhikokkuvote: { type: Type.STRING },
-    tahelepanekud: { type: Type.ARRAY, items: { type: Type.STRING } },
-    kusimused: { type: Type.ARRAY, items: { type: Type.STRING } },
-    piirangud: { type: Type.ARRAY, items: { type: Type.STRING } },
-  },
-  required: ['lyhikokkuvote', 'tahelepanekud', 'kusimused', 'piirangud'],
-  propertyOrdering: ['lyhikokkuvote', 'tahelepanekud', 'kusimused', 'piirangud'],
-};
+// Vastuse kuju, mida kasutajaliides ootab.
+const SummarySchema = z.object({
+  lyhikokkuvote: z.string(),
+  tahelepanekud: z.array(z.string()),
+  kusimused: z.array(z.string()),
+  piirangud: z.array(z.string()),
+});
 
 // Kokkuvõtte teksti koostamine. Sisend on ainult rakenduses arvutatud koondnäitajad.
 app.post('/api/summary', async (req, res) => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(503).json({ error: 'Gemini API võti on serveris seadistamata (GEMINI_API_KEY).' });
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(503).json({ error: 'Claude API võti on serveris seadistamata (ANTHROPIC_API_KEY).' });
   }
   const payload = req.body;
   if (!payload || typeof payload !== 'object' || !payload.kokku) {
     return res.status(400).json({ error: 'Päringust puuduvad arvutatud näitajad.' });
   }
 
-  const ai = new GoogleGenAI({ apiKey });
-  let lastError: unknown;
-  for (const model of MODELS) {
-    try {
-      const result = await ai.models.generateContent({
-        model,
-        contents: `Koosta müügikoosoleku kokkuvõte nende arvutatud näitajate põhjal:\n${JSON.stringify(payload, null, 2)}`,
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
-          responseMimeType: 'application/json',
-          responseSchema,
-          temperature: 0.2,
+  const client = new Anthropic(); // loeb ANTHROPIC_API_KEY keskkonnast
+  try {
+    const response = await client.beta.messages.parse({
+      model: MODEL,
+      max_tokens: 16000,
+      // Kui mudel keeldub, jätkab serveripoolne varumudel sama päringuga.
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      system: SYSTEM_INSTRUCTION,
+      messages: [
+        {
+          role: 'user',
+          content: `Koosta müügikoosoleku kokkuvõte nende arvutatud näitajate põhjal:\n${JSON.stringify(payload, null, 2)}`,
         },
-      });
-      const parsed = JSON.parse(result.text ?? '');
-      return res.json({
-        lyhikokkuvote: String(parsed.lyhikokkuvote ?? ''),
-        tahelepanekud: (parsed.tahelepanekud ?? []).slice(0, 3).map(String),
-        kusimused: (parsed.kusimused ?? []).slice(0, 2).map(String),
-        piirangud: (parsed.piirangud ?? []).map(String),
-      });
-    } catch (err) {
-      lastError = err;
-      console.error(`Gemini päring ebaõnnestus (mudel ${model}):`, err instanceof Error ? err.message : err);
+      ],
+      output_config: { effort: 'medium', format: betaZodOutputFormat(SummarySchema) },
+    });
+
+    if (response.stop_reason === 'refusal') {
+      return res.status(502).json({ error: 'Mudel keeldus kokkuvõtet koostamast.' });
     }
+    const out = response.parsed_output;
+    if (!out) {
+      return res.status(502).json({ error: 'Mudeli vastust ei õnnestunud lugeda.' });
+    }
+    return res.json({
+      lyhikokkuvote: out.lyhikokkuvote,
+      tahelepanekud: out.tahelepanekud.slice(0, 3),
+      kusimused: out.kusimused.slice(0, 2),
+      piirangud: out.piirangud,
+    });
+  } catch (err) {
+    // Täpsemad veatüübid enne üldisi.
+    let message = 'Claude API päring ebaõnnestus.';
+    if (err instanceof Anthropic.AuthenticationError) message = 'Claude API võti on vigane.';
+    else if (err instanceof Anthropic.NotFoundError) message = `Mudelit „${MODEL}” ei leitud.`;
+    else if (err instanceof Anthropic.RateLimitError) message = 'Claude API päringute limiit on täis. Proovi hiljem uuesti.';
+    else if (err instanceof Anthropic.APIConnectionError) message = 'Claude API-ga ei saadud ühendust.';
+    console.error('Claude päring ebaõnnestus:', err instanceof Error ? err.message : err);
+    return res.status(502).json({ error: message });
   }
-  return res.status(502).json({
-    error: 'Gemini päring ebaõnnestus.',
-    detail: lastError instanceof Error ? lastError.message.slice(0, 300) : undefined,
-  });
 });
 
 // Ehitatud kasutajaliides.
