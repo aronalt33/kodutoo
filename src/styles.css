@@ -1,0 +1,138 @@
+/* Compensa Life kodulehe värvid: roheline #008641, punane #ef3239, tume #231f20 */
+:root {
+  --green: #008641;
+  --green-dark: #006b34;
+  --green-light: #e8f4ee;
+  --red: #ef3239;
+  --ink: #231f20;
+  --muted: #6b6b6b;
+  --line: #e2e2e2;
+  --bg: #f6f7f6;
+  --card: #fff;
+  --radius: 10px;
+  font-family: 'TT Norms', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; line-height: 1.5; }
+h1, h2, h3 { margin: 0; line-height: 1.25; }
+h2 { font-size: 1.1rem; margin-bottom: 0.75rem; }
+h3 { font-size: 1rem; color: var(--green); margin: 1.1rem 0 0.35rem; }
+
+.container { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+
+/* Päis */
+.header { background: #fff; }
+.header-inner { display: flex; align-items: center; gap: 24px; padding-top: 18px; padding-bottom: 18px; }
+.logo { height: 46px; width: auto; flex-shrink: 0; }
+.header h1 { font-size: 1.5rem; color: var(--green); }
+.lead { margin: 4px 0 0; color: var(--muted); }
+.header-stripe { height: 4px; background: linear-gradient(90deg, var(--green) 0 75%, var(--red) 75% 100%); }
+
+main { display: flex; flex-direction: column; gap: 16px; padding-top: 20px; padding-bottom: 20px; }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; min-width: 0; }
+
+/* Andmeallikas ja periood */
+.source { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.source-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; }
+.badge-sample { background: #fff4e5; color: #8a5300; border: 1px solid #f3c98b; }
+.badge-user { background: var(--green-light); color: var(--green-dark); border: 1px solid #b9dcc8; }
+
+.period { border: 0; padding: 0; margin: 16px 0 0; }
+.period legend { font-weight: 600; margin-bottom: 8px; padding: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  border: 1px solid var(--line); background: #fff; color: var(--ink);
+  border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 0.9rem; cursor: pointer;
+}
+.chip:hover { border-color: var(--green); }
+.chip-on { background: var(--green); border-color: var(--green); color: #fff; }
+
+/* Nupud */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: 999px; padding: 10px 20px; font: inherit; font-weight: 600; cursor: pointer;
+  border: 2px solid transparent; transition: background 0.15s, color 0.15s;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--green); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: var(--green-dark); }
+.btn-secondary { background: #fff; color: var(--green); border-color: var(--green); }
+.btn-secondary:hover:not(:disabled) { background: var(--green-light); }
+.btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn-ghost:hover:not(:disabled) { border-color: var(--ink); }
+
+/* Teated */
+.alert { border-radius: 8px; padding: 12px 14px; margin-top: 12px; font-size: 0.95rem; }
+.alert:first-child { margin-top: 0; }
+.alert ul { margin: 6px 0; padding-left: 20px; }
+.alert p { margin: 4px 0 0; }
+.alert-error { background: #fdecec; border: 1px solid #f5b5b7; color: #8e1418; }
+.alert-warn { background: #fff4e5; border: 1px solid #f3c98b; color: #6b4100; }
+.alert-info { background: #eef4fb; border: 1px solid #c4d7ee; color: #1f4369; }
+
+.data-panel details { margin-top: 0; }
+.data-panel .alert + details { margin-top: 12px; }
+.data-panel summary { cursor: pointer; font-weight: 600; }
+.data-panel .table-wrap { margin-top: 10px; }
+
+/* KPI-kaardid */
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.kpi { background: #fff; border: 1px solid var(--line); border-top: 4px solid var(--green); border-radius: var(--radius); padding: 14px 16px; }
+.kpi-label { font-size: 0.85rem; color: var(--muted); }
+.kpi-value { font-size: 1.6rem; font-weight: 700; margin-top: 2px; white-space: nowrap; }
+.kpi-hint { font-size: 0.75rem; color: var(--muted); }
+
+.overview p { margin: 0; }
+.overview .small { margin-top: 8px; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.chart { width: 100%; }
+.bar-label { font-size: 12px; fill: var(--ink); }
+
+/* Tabelid */
+.table-wrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.table th, .table td { padding: 8px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.table th { font-weight: 600; color: var(--muted); font-size: 0.8rem; }
+.table.compact th, .table.compact td { padding: 6px 8px; }
+.table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.note { font-size: 0.8rem; color: var(--muted); margin: 12px 0 0; }
+
+/* Kokkuvõte */
+.summary { border-top: 4px solid var(--green); }
+.summary-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.summary-head h2 { margin: 0; }
+.summary-body { margin-top: 8px; }
+.summary-body p { margin: 0; }
+.summary-body ul, .summary-body ol { margin: 0; padding-left: 22px; }
+.summary-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.loading { display: flex; align-items: center; gap: 10px; margin-top: 14px; color: var(--muted); }
+.spinner { width: 18px; height: 18px; border: 3px solid var(--green-light); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty { text-align: center; padding: 32px 18px; }
+.empty p { color: var(--muted); margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 0.85rem; }
+.summary > .muted { margin: 12px 0 0; }
+
+.footer { font-size: 0.8rem; color: var(--muted); padding-bottom: 28px; }
+
+/* Mobiil */
+@media (max-width: 800px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .header-inner { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .logo { height: 36px; }
+  .header h1 { font-size: 1.25rem; }
+  .kpi-value { font-size: 1.25rem; }
+  .btn { width: 100%; }
+  .source-actions, .summary-actions { width: 100%; }
+}
